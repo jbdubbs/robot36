@@ -106,6 +106,9 @@
 					<item android:title="@string/contributed_modes">
 						<menu>
 							<item
+								android:id="@+id/action_force_jb60"
+								android:title="@string/jb60" />
+							<item
 								android:id="@+id/action_force_hffax_mode"
 								android:title="@string/hf_fax" />
 						</menu>

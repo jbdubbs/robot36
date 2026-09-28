@@ -653,6 +653,10 @@ public class MainActivity extends AppCompatActivity {
 			setMode(R.string.pd120w);
 			return true;
 		}
+		if (id == R.id.action_force_jb60) {
+			setMode(R.string.jb60);
+			return true;
+		}
 		if (id == R.id.action_force_pd160) {
 			setMode(R.string.pd160);
 			return true;

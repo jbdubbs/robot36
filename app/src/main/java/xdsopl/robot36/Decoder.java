@@ -56,7 +56,7 @@ public class Decoder {
 		this.scopeBuffer = scopeBuffer;
 		this.imageBuffer = imageBuffer;
 		imageBuffer.line = -1;
-		pixelBuffer = new PixelBuffer(800, 2);
+		pixelBuffer = new PixelBuffer(800, 3);
 		demodulator = new Demodulator(sampleRate);
 		double pulseFilterSeconds = 0.0025;
 		int pulseFilterSamples = (int) Math.round(pulseFilterSeconds * sampleRate) | 1;
@@ -121,6 +121,7 @@ public class Decoder {
 		syncPulse20msModes.add(new PaulDon("180", 96, 640, 496, 0.18304, sampleRate));
 		syncPulse20msModes.add(new PaulDon("240", 97, 640, 496, 0.24448, sampleRate));
 		syncPulse20msModes.add(new PaulDon("290", 94, 800, 616, 0.2288, sampleRate));
+		syncPulse20msModes.add(new JB60(sampleRate));
 	}
 
 	private double scanLineMean(int[] lines) {
@@ -387,6 +388,7 @@ public class Decoder {
 				|| Math.abs(lastSyncPulseIndex + scanLineSamples - syncIndexes[syncIndexes.length - 1]) > syncPulseToleranceSamples;
 		}
 		if (pictureChanged) {
+			currentMode.resetState();
 			drawLines(0xff000000, 10);
 			drawLines(0xff00ffff, 8);
 			drawLines(0xff000000, 10);
