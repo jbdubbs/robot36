@@ -560,7 +560,7 @@ public class MainActivity extends AppCompatActivity {
 		fgColor = getColor(R.color.fg);
 		thinColor = getColor(R.color.thin);
 		tintColor = getColor(R.color.tint);
-		scopeBuffer = new PixelBuffer(640, 2 * 1280);
+		scopeBuffer = new PixelBuffer(800, 2 * 1280);
 		waterfallPlotBuffer = new PixelBuffer(256, 2 * 256);
 		peakMeterBuffer = new PixelBuffer(1, 16);
 		imageBuffer = new PixelBuffer(800, 616);
