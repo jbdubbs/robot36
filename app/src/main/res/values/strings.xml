@@ -12,6 +12,8 @@
 	<string name="pd50" translatable="false">PD 50</string>
 	<string name="pd90" translatable="false">PD 90</string>
 	<string name="pd120" translatable="false">PD 120</string>
+	<string name="pd120s" translatable="false">PD 120S</string>
+	<string name="pd120w" translatable="false">PD 120W</string>
 	<string name="pd160" translatable="false">PD 160</string>
 	<string name="pd180" translatable="false">PD 180</string>
 	<string name="pd240" translatable="false">PD 240</string>

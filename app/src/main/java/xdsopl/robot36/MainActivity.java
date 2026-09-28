@@ -2,6 +2,7 @@
 Robot36
 
 Copyright 2024 Ahmet Inan <xdsopl@gmail.com>
+Modified 2026 Jason <jason@weisb.net>
 */
 
 package xdsopl.robot36;
@@ -642,6 +643,14 @@ public class MainActivity extends AppCompatActivity {
 		}
 		if (id == R.id.action_force_pd120) {
 			setMode(R.string.pd120);
+			return true;
+		}
+		if (id == R.id.action_force_pd120s) {
+			setMode(R.string.pd120s);
+			return true;
+		}
+		if (id == R.id.action_force_pd120w) {
+			setMode(R.string.pd120w);
 			return true;
 		}
 		if (id == R.id.action_force_pd160) {

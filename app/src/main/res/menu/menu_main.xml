@@ -54,6 +54,12 @@
 								android:id="@+id/action_force_pd120"
 								android:title="@string/pd120" />
 							<item
+								android:id="@+id/action_force_pd120s"
+								android:title="@string/pd120s" />
+							<item
+								android:id="@+id/action_force_pd120w"
+								android:title="@string/pd120w" />
+							<item
 								android:id="@+id/action_force_pd160"
 								android:title="@string/pd160" />
 							<item

@@ -2,6 +2,7 @@
 SSTV Decoder
 
 Copyright 2024 Ahmet Inan <xdsopl@gmail.com>
+Modified 2026 Jason <jason@weisb.net>
 */
 
 package xdsopl.robot36;
@@ -110,10 +111,12 @@ public class Decoder {
 		syncPulse9msModes.add(RGBModes.Scottie("1", 60, 0.138240, sampleRate));
 		syncPulse9msModes.add(RGBModes.Scottie("2", 56, 0.088064, sampleRate));
 		syncPulse9msModes.add(RGBModes.Scottie("DX", 76, 0.3456, sampleRate));
+		syncPulse9msModes.add(new PaulDon("120S", 100, 640, 496, 0.01, 0.00104, 0.0608, sampleRate));
 		syncPulse20msModes = new ArrayList<>();
 		syncPulse20msModes.add(new PaulDon("50", 93, 320, 256, 0.09152, sampleRate));
 		syncPulse20msModes.add(new PaulDon("90", 99, 320, 256, 0.17024, sampleRate));
 		syncPulse20msModes.add(new PaulDon("120", 95, 640, 496, 0.1216, sampleRate));
+		syncPulse20msModes.add(new PaulDon("120W", 101, 768, 432, 0.02, 0.00208, 0.14592, sampleRate));
 		syncPulse20msModes.add(new PaulDon("160", 98, 512, 400, 0.195584, sampleRate));
 		syncPulse20msModes.add(new PaulDon("180", 96, 640, 496, 0.18304, sampleRate));
 		syncPulse20msModes.add(new PaulDon("240", 97, 640, 496, 0.24448, sampleRate));

@@ -2,6 +2,7 @@
 PD modes
 
 Copyright 2024 Ahmet Inan <xdsopl@gmail.com>
+Modified 2026 Jason <jason@weisb.net>
 */
 
 package xdsopl.robot36;
@@ -21,14 +22,16 @@ public class PaulDon extends BaseMode {
 	private final String name;
 	private final int code;
 
-	@SuppressWarnings("UnnecessaryLocalVariable")
 	PaulDon(String name, int code, int horizontalPixels, int verticalPixels, double channelSeconds, int sampleRate) {
+		this(name, code, horizontalPixels, verticalPixels, 0.02, 0.00208, channelSeconds, sampleRate);
+	}
+
+	@SuppressWarnings("UnnecessaryLocalVariable")
+	PaulDon(String name, int code, int horizontalPixels, int verticalPixels, double syncPulseSeconds, double syncPorchSeconds, double channelSeconds, int sampleRate) {
 		this.name = "PD " + name;
 		this.code = code;
 		this.horizontalPixels = horizontalPixels;
 		this.verticalPixels = verticalPixels;
-		double syncPulseSeconds = 0.02;
-		double syncPorchSeconds = 0.00208;
 		double scanLineSeconds = syncPulseSeconds + syncPorchSeconds + 4 * (channelSeconds);
 		scanLineSamples = (int) Math.round(scanLineSeconds * sampleRate);
 		channelSamples = (int) Math.round(channelSeconds * sampleRate);
