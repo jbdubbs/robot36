@@ -56,7 +56,7 @@ public class Decoder {
 		this.scopeBuffer = scopeBuffer;
 		this.imageBuffer = imageBuffer;
 		imageBuffer.line = -1;
-		pixelBuffer = new PixelBuffer(800, 3);
+		pixelBuffer = new PixelBuffer(800, 4); // JB60's last pair can emit 4 rows in one call
 		demodulator = new Demodulator(sampleRate);
 		double pulseFilterSeconds = 0.0025;
 		int pulseFilterSamples = (int) Math.round(pulseFilterSeconds * sampleRate) | 1;
