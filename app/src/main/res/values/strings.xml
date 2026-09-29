@@ -80,6 +80,7 @@
 	<string name="frequency_plot">Frequency plot</string>
 	<string name="spectrogram">Spectrogram</string>
 	<string name="auto_save">Auto Save</string>
+	<string name="jb60_chroma_deconvolution">JB60 Chroma Sharpening</string>
 	<string name="night_mode">Night Mode</string>
 	<string name="enable">Enable</string>
 	<string name="disable">Disable</string>

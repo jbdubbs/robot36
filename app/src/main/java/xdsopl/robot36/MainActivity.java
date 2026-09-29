@@ -92,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
 	private int tintColor;
 	private boolean autoSave;
 	private boolean showSpectrogram;
+	private boolean jb60ChromaDeconvolution;
 	private final int binWidthHz = 10;
 	private final int[] freqMarkers = { 1100, 1300, 1500, 2300 };
 
@@ -324,6 +325,7 @@ public class MainActivity extends AppCompatActivity {
 				if (rateChanged) {
 					decoder = new Decoder(scopeBuffer, imageBuffer, getString(R.string.raw_mode), recordRate);
 					decoder.setMode(currentMode);
+					decoder.setChromaDeconvolutionEnabled(jb60ChromaDeconvolution);
 					stft = new ShortTimeFourierTransform(recordRate / binWidthHz, 3);
 				}
 				startListening();
@@ -419,6 +421,22 @@ public class MainActivity extends AppCompatActivity {
 			menu.findItem(R.id.action_disable_auto_save).setChecked(true);
 	}
 
+	private void setJb60ChromaDeconvolution(boolean newValue) {
+		if (jb60ChromaDeconvolution == newValue)
+			return;
+		jb60ChromaDeconvolution = newValue;
+		if (decoder != null)
+			decoder.setChromaDeconvolutionEnabled(jb60ChromaDeconvolution);
+		updateJb60ChromaDeconvolutionMenu();
+	}
+
+	private void updateJb60ChromaDeconvolutionMenu() {
+		if (jb60ChromaDeconvolution)
+			menu.findItem(R.id.action_enable_jb60_chroma_deconvolution).setChecked(true);
+		else
+			menu.findItem(R.id.action_disable_jb60_chroma_deconvolution).setChecked(true);
+	}
+
 	private void updateRecordRateMenu() {
 		switch (recordRate) {
 			case 8000:
@@ -504,6 +522,7 @@ public class MainActivity extends AppCompatActivity {
 		state.putInt("audioFormat", audioFormat);
 		state.putBoolean("autoSave", autoSave);
 		state.putBoolean("showSpectrogram", showSpectrogram);
+		state.putBoolean("jb60ChromaDeconvolution", jb60ChromaDeconvolution);
 		state.putString("language", language);
 		super.onSaveInstanceState(state);
 	}
@@ -518,6 +537,7 @@ public class MainActivity extends AppCompatActivity {
 		edit.putInt("audioFormat", audioFormat);
 		edit.putBoolean("autoSave", autoSave);
 		edit.putBoolean("showSpectrogram", showSpectrogram);
+		edit.putBoolean("jb60ChromaDeconvolution", jb60ChromaDeconvolution);
 		edit.putString("language", language);
 		edit.apply();
 	}
@@ -530,6 +550,10 @@ public class MainActivity extends AppCompatActivity {
 		final int defaultAudioFormat = AudioFormat.ENCODING_PCM_16BIT;
 		final boolean defaultAutoSave = true;
 		final boolean defaultShowSpectrogram = true;
+		// opt-in, off by default: no independent noise-crossover data existed for this app's own
+		// filter chain until it was actually derived (see JB60.java's DECONV_KERNEL comment and
+		// tools/README.md) -- matches every other RX-side (noise-amplifying) idea in this family
+		final boolean defaultJb60ChromaDeconvolution = false;
 		final String defaultLanguage = "system";
 		if (state == null) {
 			SharedPreferences pref = getPreferences(Context.MODE_PRIVATE);
@@ -540,6 +564,7 @@ public class MainActivity extends AppCompatActivity {
 			audioFormat = pref.getInt("audioFormat", defaultAudioFormat);
 			autoSave = pref.getBoolean("autoSave", defaultAutoSave);
 			showSpectrogram = pref.getBoolean("showSpectrogram", defaultShowSpectrogram);
+			jb60ChromaDeconvolution = pref.getBoolean("jb60ChromaDeconvolution", defaultJb60ChromaDeconvolution);
 			language = pref.getString("language", defaultLanguage);
 		} else {
 			AppCompatDelegate.setDefaultNightMode(state.getInt("nightMode", AppCompatDelegate.getDefaultNightMode()));
@@ -549,6 +574,7 @@ public class MainActivity extends AppCompatActivity {
 			audioFormat = state.getInt("audioFormat", defaultAudioFormat);
 			autoSave = state.getBoolean("autoSave", defaultAutoSave);
 			showSpectrogram = state.getBoolean("showSpectrogram", defaultShowSpectrogram);
+			jb60ChromaDeconvolution = state.getBoolean("jb60ChromaDeconvolution", defaultJb60ChromaDeconvolution);
 			language = state.getString("language", defaultLanguage);
 		}
 		super.onCreate(state);
@@ -599,6 +625,7 @@ public class MainActivity extends AppCompatActivity {
 		updateAudioFormatMenu();
 		updateWaterfallPlotMenu();
 		updateAutoSaveMenu();
+		updateJb60ChromaDeconvolutionMenu();
 		return true;
 	}
 
@@ -779,6 +806,14 @@ public class MainActivity extends AppCompatActivity {
 		}
 		if (id == R.id.action_disable_auto_save) {
 			setAutoSave(false);
+			return true;
+		}
+		if (id == R.id.action_enable_jb60_chroma_deconvolution) {
+			setJb60ChromaDeconvolution(true);
+			return true;
+		}
+		if (id == R.id.action_disable_jb60_chroma_deconvolution) {
+			setJb60ChromaDeconvolution(false);
 			return true;
 		}
 		if (id == R.id.action_enable_night_mode) {

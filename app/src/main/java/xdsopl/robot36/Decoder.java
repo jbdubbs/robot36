@@ -40,6 +40,7 @@ public class Decoder {
 	private final int visCodeSamples;
 	private final Mode rawMode;
 	private final Mode hfFaxMode;
+	private final JB60 jb60Mode;
 	private final ArrayList<Mode> syncPulse5msModes;
 	private final ArrayList<Mode> syncPulse9msModes;
 	private final ArrayList<Mode> syncPulse20msModes;
@@ -121,7 +122,12 @@ public class Decoder {
 		syncPulse20msModes.add(new PaulDon("180", 96, 640, 496, 0.18304, sampleRate));
 		syncPulse20msModes.add(new PaulDon("240", 97, 640, 496, 0.24448, sampleRate));
 		syncPulse20msModes.add(new PaulDon("290", 94, 800, 616, 0.2288, sampleRate));
-		syncPulse20msModes.add(new JB60(sampleRate));
+		jb60Mode = new JB60(sampleRate);
+		syncPulse20msModes.add(jb60Mode);
+	}
+
+	public void setChromaDeconvolutionEnabled(boolean enabled) {
+		jb60Mode.setChromaDeconvolutionEnabled(enabled);
 	}
 
 	private double scanLineMean(int[] lines) {

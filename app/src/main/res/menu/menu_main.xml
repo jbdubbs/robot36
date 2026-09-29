@@ -261,6 +261,21 @@
 				</menu>
 			</item>
 			<item
+				android:title="@string/jb60_chroma_deconvolution">
+				<menu>
+					<group android:checkableBehavior="single">
+						<item
+							android:id="@+id/action_enable_jb60_chroma_deconvolution"
+							android:title="@string/enable"
+							app:iconTint="@color/tint" />
+						<item
+							android:id="@+id/action_disable_jb60_chroma_deconvolution"
+							android:title="@string/disable"
+							app:iconTint="@color/tint" />
+					</group>
+				</menu>
+			</item>
+			<item
 				android:icon="@drawable/baseline_language_24"
 				android:title="@string/language"
 				app:iconTint="@color/tint">

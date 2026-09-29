@@ -158,4 +158,39 @@ public class JB60Test {
 			assertTrue("row 1 col " + col + " g=" + g1, Math.abs(g1 - 100) <= 6);
 		}
 	}
+
+	// Wiring/safety only, not efficacy evidence: confirms the chroma deconvolution toggle doesn't
+	// crash, doesn't push chroma out of byte range, and -- since flat/grey chroma is a fixed point
+	// of a DC-pinned filter -- barely moves the reconstructed colour at all on this synthetic
+	// signal. It cannot demonstrate the filter's real benefit, since makeRampLine()/fillSegment()
+	// write directly into scanLineBuffer and so skip the real Demodulator entirely (the same
+	// limitation JB60ChromaResponseDump's own header comment documents) -- see tools/README.md for
+	// the real evidence, gathered through the actual Demodulator+Decoder chain.
+	@Test
+	public void jb60_chroma_deconvolution_is_a_no_op_on_flat_chroma() {
+		JB60 mode = new JB60(sampleRate);
+		mode.setChromaDeconvolutionEnabled(true);
+		PixelBuffer pixelBuffer = new PixelBuffer(800, 4);
+		float[] scratchBuffer = new float[(int) Math.round(1.1 * sampleRate)];
+		float[] scanLineBuffer = makeRampLine(mode);
+		int rows = 0;
+		for (int pair = 0; pair < 3 && rows == 0; ++pair) {
+			assertTrue(mode.decodeScanLine(pixelBuffer, scratchBuffer, scanLineBuffer, 640, 0, mode.getScanLineSamples(), 0));
+			rows = pixelBuffer.height;
+		}
+		// same bounds as jb60_reconstructs_luma_ramp (deconvolution off): a DC-pinned filter applied
+		// to already-flat chroma should reproduce the same picture, within the same tolerance
+		for (int row = 0; row < 2; ++row) {
+			for (int col = 10; col < 630; col += 20) {
+				int pixel = pixelBuffer.pixels[row * 640 + col];
+				int expected = (int) Math.round(col * 255 / 639.0);
+				int r = (pixel >> 16) & 255;
+				int g = (pixel >> 8) & 255;
+				int b = pixel & 255;
+				assertTrue("row " + row + " col " + col + " r=" + r + " expected " + expected, Math.abs(r - expected) <= 4);
+				assertTrue("row " + row + " col " + col + " g=" + g + " expected " + expected, Math.abs(g - expected) <= 4);
+				assertTrue("row " + row + " col " + col + " b=" + b + " expected " + expected, Math.abs(b - expected) <= 4);
+			}
+		}
+	}
 }

@@ -26,6 +26,41 @@ public class JB60 extends BaseMode {
 	// receive: luma guided chroma upsampling
 	private static final float GUIDE_SIGMA = 20.f;
 	private static final float GUIDE_FLOOR = 0.02f;
+	// RX chroma deconvolution (opt-in, off by default): regularized (Wiener-style) inverse of the
+	// combined Demodulator (900Hz Kaiser low-pass) + this mode's own 2-pass EMA slot-domain
+	// response, applied to already-demodulated Cr/Cb right after capture. Symmetric (zero group
+	// delay), 5 taps.
+	//
+	// Design (see tools/README.md and tools/jb60_chroma_deconv_design.py for the full derivation, a
+	// from-scratch redesign against this app's own filter chain -- not a port of mmsstv-linux's own
+	// modejb60.cpp constants, which are specific to its different demod filter): H(f) was measured
+	// through the real chain (JB60ChromaResponseDump, phase-continuous FM audio synthesis -> real
+	// Demodulator.process() -> real decodeScanLine()), Cr and Cb each in their own line so a step in
+	// one never bleeds into the other's head (this app has no encoder, so unlike mmsstv-linux there
+	// was no need to fight a TX-side nonlinearity, only that one self-inflicted transmission-time
+	// boundary artifact). Measurement confirms Demodulator's 900Hz Kaiser low-pass, not this mode's
+	// own gentler slot-Nyquist-cutoff EMA, is the dominant blur (|H(600Hz)|~=0.74, |H(900Hz)|~=0.47,
+	// falling off further beyond, matching the Kaiser filter's own stated cutoff closely). The
+	// inverse is Hinv(f)=|H(f)|/(|H(f)|^2+K), K=0.1, DC pinned to an exact 1.0 (flat/already-correct
+	// colour must pass through unchanged -- same fix that mattered most on the mmsstv-linux side),
+	// target held flat past 1300 Hz where the measurement itself goes noise-dominated. Fit to a
+	// 5-tap symmetric FIR by weighted least squares over the cosine basis.
+	//
+	// Tap-count sweep (K=0.1, clean, card + a hard-edged colour image): diminishing returns past 5
+	// taps (same shape as mmsstv-linux's own tap-count finding) -- 5 taps shipped. K sweep at 5 taps
+	// through the full cross-repo WAV-bridge SNR grid (tools/README.md has the whole table): K=0.2
+	// is essentially a no-op at every SNR tested; K=0.05 gives slightly more clean-signal gain but a
+	// much steeper noise penalty (-1.40dB card all-channel PSNR at 10dB SNR, vs K=0.1's -0.67dB);
+	// K=0.1 is the balanced pick -- same broad-optimum-then-regression shape as every other filter
+	// in this family, landing at the same K magnitude as mmsstv-linux's own idea 4 despite a
+	// completely different filter chain. Real SNR crossover found around 20-25dB (small gains
+	// above, growing losses below), consistent with mmsstv-linux's own ~22-25dB finding for the
+	// analogous RX-side (noise-amplifying, unlike TX-side idea 6) filter. Below about 5dB SNR the
+	// real Decoder's own VIS/sync detection fails to lock at all in this test, independent of this
+	// setting -- a real property of this app's front end that mmsstv-linux's own idealized-timing
+	// harness can't see (it doesn't model sync detection at all).
+	private static final int DECONV_HALF_TAPS = 2;
+	private static final float[] DECONV_KERNEL = {1.284351f, -0.033209f, -0.108966f};
 
 	private final ExponentialMovingAverage lowPassFilter;
 	private final int scanLineSamples;
@@ -46,6 +81,9 @@ public class JB60 extends BaseMode {
 	private final float[] segBar; // scratch: per-footprint mean luma, reused by upsampleChroma
 	private final float[] dExp; // scratch: decoded (expanded) D samples
 	private final float[] dFull; // scratch: full width vertical detail
+	private final int[] deconvScratchCr; // scratch: read-from copy for applyChromaDeconvolution(curCr, ...)
+	private final int[] deconvScratchCb; // scratch: read-from copy for applyChromaDeconvolution(curCb, ...)
+	private boolean chromaDeconvolutionEnabled = false;
 	private int lineCounter;
 
 	JB60(int sampleRate) {
@@ -100,6 +138,8 @@ public class JB60 extends BaseMode {
 		segBar = new float[WIDTH];
 		dExp = new float[SEGMENT_SLOTS[D]];
 		dFull = new float[WIDTH];
+		deconvScratchCr = new int[SEGMENT_SLOTS[CR]];
+		deconvScratchCb = new int[SEGMENT_SLOTS[CB]];
 		lowPassFilter = new ExponentialMovingAverage();
 		resetState();
 	}
@@ -159,6 +199,24 @@ public class JB60 extends BaseMode {
 		java.util.Arrays.fill(prevCr, 128);
 		java.util.Arrays.fill(prevCb, 128);
 		java.util.Arrays.fill(prev2L, 128);
+	}
+
+	public void setChromaDeconvolutionEnabled(boolean enabled) {
+		chromaDeconvolutionEnabled = enabled;
+	}
+
+	// symmetric (zero group delay) FIR, edge-clamped taps -- see the DECONV_KERNEL comment above
+	private void applyChromaDeconvolution(int[] arr, int n, int[] scratch) {
+		System.arraycopy(arr, 0, scratch, 0, n); // read from a copy, not partially-overwritten neighbours
+		for (int k = 0; k < n; ++k) {
+			float v = DECONV_KERNEL[0] * scratch[k];
+			for (int t = 1; t <= DECONV_HALF_TAPS; ++t) {
+				int lo = Math.min(Math.max(k - t, 0), n - 1);
+				int hi = Math.min(Math.max(k + t, 0), n - 1);
+				v += DECONV_KERNEL[t] * (scratch[lo] + scratch[hi]);
+			}
+			arr[k] = clamp(Math.round(v));
+		}
 	}
 
 	// plain linear interpolation of n samples (sample j centred at (j+0.5)*WIDTH/n) across the full width
@@ -241,6 +299,10 @@ public class JB60 extends BaseMode {
 			curCr[i] = clamp(Math.round(255 * scratchBuffer[slotCenters[CR][i]]));
 		for (int i = 0; i < SEGMENT_SLOTS[CB]; ++i)
 			curCb[i] = clamp(Math.round(255 * scratchBuffer[slotCenters[CB][i]]));
+		if (chromaDeconvolutionEnabled) {
+			applyChromaDeconvolution(curCr, SEGMENT_SLOTS[CR], deconvScratchCr);
+			applyChromaDeconvolution(curCb, SEGMENT_SLOTS[CB], deconvScratchCb);
+		}
 
 		// the picture trails the received data by one pair: pair p finishes pair p-1 (and, at the end of
 		// the picture, itself as well) -- see modejb60.cpp's showLine() for the reference logic
@@ -274,5 +336,20 @@ public class JB60 extends BaseMode {
 		pixelBuffer.width = WIDTH;
 		pixelBuffer.height = rows;
 		return true;
+	}
+
+	// Diagnostic accessors, not used by the app itself: the most recently RX-captured (post-demod,
+	// pre-deconvolution) Cr/Cb slot arrays. decodeScanLine()'s tmp-swap moves its freshly captured
+	// curCr/curCb into prevCr/prevCb before returning, so immediately after any decodeScanLine()
+	// call these hold exactly the last line pair's demodulated chroma -- used by
+	// JB60ChromaResponseDump/JB60WavBridge to measure the real chain's slot-domain response for the
+	// chroma deconvolution filter's design (see mmsstv-linux's modejb60.h for the reference of this
+	// same accessor pair).
+	int[] lastCr() {
+		return prevCr;
+	}
+
+	int[] lastCb() {
+		return prevCb;
 	}
 }
