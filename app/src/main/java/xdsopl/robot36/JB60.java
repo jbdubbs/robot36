@@ -205,9 +205,11 @@ public class JB60 extends BaseMode {
 	// 2-pass low-pass above also starts its backward pass from rest at the end of the line, so the last
 	// slots read toward the bottom of the scale: Cb collapses over the last ~8 px, a green/yellow strip down the
 	// right edge (QSSTV-Experimental issue #18; measured here on the loopback card image, right-edge blue
-	// 70 -> ~6). Replace those slots with the last unaffected one. Cr needs only its last slot.
-	private static final int RX_TAIL_HOLD_CB = 2;
-	private static final int RX_TAIL_HOLD_CR = 1;
+	// 70 -> ~6). Replace those slots with the last unaffected one. A 0..8 slot sweep through JB60WavBridge: residual
+	// error vs the source is ~64 counts at 0, ~35 at 1, ~4 at 2, ~2 at 4+. 4 Cb / 3 Cr leaves a margin for
+	// real-device audio, which this harness doesn't model; the desktop app needed 5 / 3 against its own front end.
+	private static final int RX_TAIL_HOLD_CB = 4;
+	private static final int RX_TAIL_HOLD_CR = 3;
 
 	private static void holdTail(int[] arr, int n, int hold) {
 		for (int k = 0; k < hold; ++k)
