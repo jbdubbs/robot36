@@ -201,6 +201,19 @@ public class JB60 extends BaseMode {
 		java.util.Arrays.fill(prev2L, 128);
 	}
 
+	// The last Cb slot of a line sits right against the next sync pulse (JB60 has no front porch), and the
+	// 2-pass low-pass above also starts its backward pass from rest at the end of the line, so the last
+	// slots read toward the bottom of the scale: Cb collapses over the last ~8 px, a green/yellow strip down the
+	// right edge (QSSTV-Experimental issue #18; measured here on the loopback card image, right-edge blue
+	// 70 -> ~6). Replace those slots with the last unaffected one. Cr needs only its last slot.
+	private static final int RX_TAIL_HOLD_CB = 2;
+	private static final int RX_TAIL_HOLD_CR = 1;
+
+	private static void holdTail(int[] arr, int n, int hold) {
+		for (int k = 0; k < hold; ++k)
+			arr[n - 1 - k] = arr[n - 1 - hold];
+	}
+
 	public void setChromaDeconvolutionEnabled(boolean enabled) {
 		chromaDeconvolutionEnabled = enabled;
 	}
@@ -299,6 +312,8 @@ public class JB60 extends BaseMode {
 			curCr[i] = clamp(Math.round(255 * scratchBuffer[slotCenters[CR][i]]));
 		for (int i = 0; i < SEGMENT_SLOTS[CB]; ++i)
 			curCb[i] = clamp(Math.round(255 * scratchBuffer[slotCenters[CB][i]]));
+		holdTail(curCr, SEGMENT_SLOTS[CR], RX_TAIL_HOLD_CR);
+		holdTail(curCb, SEGMENT_SLOTS[CB], RX_TAIL_HOLD_CB);
 		if (chromaDeconvolutionEnabled) {
 			applyChromaDeconvolution(curCr, SEGMENT_SLOTS[CR], deconvScratchCr);
 			applyChromaDeconvolution(curCb, SEGMENT_SLOTS[CB], deconvScratchCb);
