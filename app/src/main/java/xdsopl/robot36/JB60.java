@@ -210,6 +210,12 @@ public class JB60 extends BaseMode {
 	// real-device audio, which this harness doesn't model; the desktop app needed 5 / 3 against its own front end.
 	private static final int RX_TAIL_HOLD_CB = 4;
 	private static final int RX_TAIL_HOLD_CR = 3;
+	// The L segment is followed directly by D, whose idle level is mid-scale (128), so the same smear drags the last
+	// luma slots toward it: too bright on a dark edge, too dark on a bright one (QSSTV-Experimental issue #21).
+	// Swept 0..6 slots through JB60WavBridge on near-black / bright-edged flat images: right-edge luma error is
+	// ~37 / 39 counts at 0, ~12 at 1, ~2-3 at 2, ~1-2 at 4+. 3 leaves a margin for real-device audio; the desktop
+	// app (needing 4) is a touch further out.
+	private static final int RX_TAIL_HOLD_L = 3;
 
 	private static void holdTail(int[] arr, int n, int hold) {
 		for (int k = 0; k < hold; ++k)
@@ -314,6 +320,7 @@ public class JB60 extends BaseMode {
 			curCr[i] = clamp(Math.round(255 * scratchBuffer[slotCenters[CR][i]]));
 		for (int i = 0; i < SEGMENT_SLOTS[CB]; ++i)
 			curCb[i] = clamp(Math.round(255 * scratchBuffer[slotCenters[CB][i]]));
+		holdTail(curL, SEGMENT_SLOTS[L], RX_TAIL_HOLD_L);
 		holdTail(curCr, SEGMENT_SLOTS[CR], RX_TAIL_HOLD_CR);
 		holdTail(curCb, SEGMENT_SLOTS[CB], RX_TAIL_HOLD_CB);
 		if (chromaDeconvolutionEnabled) {
